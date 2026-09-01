@@ -1,45 +1,119 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, KeyRound, ArrowRight, ShieldCheck, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Lock, ShieldCheck, AlertCircle, Sparkles } from 'lucide-react';
 
 interface PasscodeGateProps {
   onUnlock: () => void;
 }
 
 const REQUIRED_PASSCODE = '14418';
+const CODE_LENGTH = 5;
 
 export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
-  const [passcode, setPasscode] = useState('');
+  const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [error, setError] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    // Focus the input automatically on mount
-    inputRef.current?.focus();
+    // Focus first input box on load
+    inputRefs.current[0]?.focus();
   }, []);
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (passcode.trim() === REQUIRED_PASSCODE) {
-      setError(false);
-      onUnlock();
-    } else {
-      setError(true);
-      setPasscode('');
-      inputRef.current?.focus();
+  const handleDigitChange = (index: number, value: string) => {
+    // Take only the last entered char if multiple, or empty if cleared
+    const char = value.slice(-1);
+    
+    // Only accept numeric digits
+    if (char && !/^\d$/.test(char)) return;
+
+    const newDigits = [...digits];
+    newDigits[index] = char;
+    setDigits(newDigits);
+    if (error) setError(false);
+
+    // Auto advance to next box
+    if (char && index < CODE_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Check if full passcode entered
+    const completeCode = newDigits.join('');
+    if (completeCode.length === CODE_LENGTH) {
+      if (completeCode === REQUIRED_PASSCODE) {
+        setIsSuccess(true);
+        setError(false);
+        setTimeout(() => {
+          onUnlock();
+        }, 300);
+      } else {
+        setError(true);
+        setTimeout(() => {
+          setDigits(Array(CODE_LENGTH).fill(''));
+          inputRefs.current[0]?.focus();
+        }, 600);
+      }
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setPasscode(val);
-    if (error) setError(false);
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        // Move to previous input and clear it
+        const newDigits = [...digits];
+        newDigits[index - 1] = '';
+        setDigits(newDigits);
+        inputRefs.current[index - 1]?.focus();
+      } else {
+        const newDigits = [...digits];
+        newDigits[index] = '';
+        setDigits(newDigits);
+      }
+      if (error) setError(false);
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < CODE_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
 
-    // Auto unlock if user types the exact 5 digit passcode
-    if (val === REQUIRED_PASSCODE) {
-      setTimeout(() => {
-        onUnlock();
-      }, 150);
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    if (!pastedData) return;
+
+    // Filter only digits
+    const cleanedDigits = pastedData.replace(/\D/g, '').slice(0, CODE_LENGTH).split('');
+    if (cleanedDigits.length === 0) return;
+
+    const newDigits = Array(CODE_LENGTH).fill('');
+    cleanedDigits.forEach((d, i) => {
+      newDigits[i] = d;
+    });
+    setDigits(newDigits);
+
+    const completeCode = newDigits.join('');
+    if (completeCode.length === CODE_LENGTH) {
+      if (completeCode === REQUIRED_PASSCODE) {
+        setIsSuccess(true);
+        setError(false);
+        setTimeout(() => {
+          onUnlock();
+        }, 300);
+      } else {
+        setError(true);
+        setTimeout(() => {
+          setDigits(Array(CODE_LENGTH).fill(''));
+          inputRefs.current[0]?.focus();
+        }, 600);
+      }
+    } else {
+      // Focus on the first unfilled input
+      const nextEmptyIndex = newDigits.findIndex((d) => !d);
+      if (nextEmptyIndex !== -1) {
+        inputRefs.current[nextEmptyIndex]?.focus();
+      } else {
+        inputRefs.current[CODE_LENGTH - 1]?.focus();
+      }
     }
   };
 
@@ -57,8 +131,14 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
         <div className="studio-panel rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-800/90 bg-slate-900/95 backdrop-blur-xl">
           {/* Logo & Lock Header */}
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-950/80 border border-indigo-500/30 text-indigo-400 shadow-lg shadow-indigo-950/50">
-              <Lock className="w-7 h-7" />
+            <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl border shadow-lg transition-all duration-300 ${
+              isSuccess 
+                ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-400 shadow-emerald-950/60 scale-105' 
+                : error
+                ? 'bg-rose-950/80 border-rose-500/50 text-rose-400 shadow-rose-950/60'
+                : 'bg-indigo-950/80 border-indigo-500/30 text-indigo-400 shadow-indigo-950/50'
+            }`}>
+              {isSuccess ? <Sparkles className="w-7 h-7 animate-pulse" /> : <Lock className="w-7 h-7" />}
             </div>
 
             <div>
@@ -70,62 +150,64 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
                 SARKO <span className="text-indigo-400">MOTION-GFX</span>
               </h1>
               <p className="text-xs text-slate-400 mt-1">
-                Enter your studio access passcode to enter the workstation
+                Please enter the 5-digit passcode to access the workstation
               </p>
             </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <KeyRound className="w-4 h-4" />
-                </div>
-                
-                <input
-                  ref={inputRef}
-                  id="studio-passcode-input"
-                  type={showPassword ? 'text' : 'password'}
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={passcode}
-                  onChange={handleChange}
-                  placeholder="Enter passcode..."
-                  className={`w-full bg-slate-950 border text-slate-100 text-center text-lg tracking-widest font-mono rounded-xl pl-10 pr-10 py-3 focus:outline-none transition-all ${
-                    error
-                      ? 'border-rose-500 ring-2 ring-rose-500/20 text-rose-300'
-                      : 'border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                  }`}
-                />
+          {/* 5-Digit Boxes Form */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-2.5 sm:gap-3 py-2">
+              {Array.from({ length: CODE_LENGTH }).map((_, index) => {
+                const isFilled = Boolean(digits[index]);
+                return (
+                  <div key={index} className="relative">
+                    <input
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      id={`passcode-box-${index}`}
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={digits[index]}
+                      onChange={(e) => handleDigitChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={handlePaste}
+                      autoComplete="off"
+                      className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold font-mono rounded-xl bg-slate-950/90 border transition-all duration-200 outline-none select-none cursor-pointer ${
+                        error
+                          ? 'border-rose-500/80 text-rose-300 shadow-lg shadow-rose-950/50 animate-shake'
+                          : isSuccess
+                          ? 'border-emerald-500 text-emerald-300 shadow-lg shadow-emerald-950/60 bg-emerald-950/20'
+                          : isFilled
+                          ? 'border-indigo-500/80 text-white bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                          : 'border-slate-800 text-slate-300 hover:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30'
+                      }`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {error && (
-                <div className="flex items-center justify-center gap-1.5 text-xs text-rose-400 font-mono pt-1">
+            {/* Error / Success Status indicator */}
+            <div className="h-6 flex items-center justify-center text-center">
+              {error ? (
+                <div className="flex items-center gap-1.5 text-xs text-rose-400 font-mono animate-fadeIn">
                   <AlertCircle className="w-3.5 h-3.5" />
                   <span>Invalid passcode. Please try again.</span>
                 </div>
+              ) : isSuccess ? (
+                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono animate-fadeIn">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Passcode verified! Unlocking studio...</span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-500 font-mono">
+                  Auto-verifies upon entering all 5 digits
+                </div>
               )}
             </div>
-
-            <button
-              id="btn-unlock-studio"
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-950 transition-all cursor-pointer group"
-            >
-              <span>Unlock Studio</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          </form>
+          </div>
 
           {/* Info note */}
           <div className="text-[11px] text-slate-500 text-center font-mono border-t border-slate-800/70 pt-3">
