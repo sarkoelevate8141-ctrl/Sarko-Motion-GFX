@@ -92,8 +92,8 @@ export const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     }
   }, [currentVideo?.id, rawActiveSrc]);
 
-  const handleVideoError = (e?: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-    console.warn(`[VideoPlayer] Error playing source (${activeVideoSrc}). Attempting fallback...`, e);
+  const handleVideoError = () => {
+    console.warn(`[VideoPlayer] Error playing source (${activeVideoSrc}). Attempting fallback...`);
     if (sourceAttemptIndex + 1 < candidateSources.length) {
       setSourceAttemptIndex((prev) => prev + 1);
     } else {
@@ -108,7 +108,7 @@ export const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
       setIsPlaying(false);
     } else {
       videoRef.current.play().then(() => setIsPlaying(true)).catch((err) => {
-        console.warn('Play interrupted:', err);
+        console.warn('Play interrupted:', err ? String(err.message || err) : '');
       });
     }
   };

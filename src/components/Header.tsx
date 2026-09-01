@@ -2,21 +2,23 @@ import React from 'react';
 import { 
   Sliders, 
   HelpCircle, 
-  Sparkles,
-  ShieldCheck,
-  Video,
-  FileSpreadsheet
+  Sparkles, 
+  ShieldCheck, 
+  Video, 
+  Lock 
 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenGuidelines: () => void;
   onOpenBatchExport?: () => void;
+  onLockStudio?: () => void;
   hasReplicateKey: boolean;
   hasGeminiKey: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   onOpenGuidelines, 
+  onLockStudio,
   hasReplicateKey, 
   hasGeminiKey 
 }) => {
@@ -30,11 +32,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className="flex items-baseline gap-2">
-            <span className="text-lg sm:text-xl font-bold tracking-tight text-white font-display">
-              MOTION<span className="text-indigo-400">AI</span>
+            <span className="text-base sm:text-lg font-extrabold tracking-wider text-white font-mono">
+              SARKO <span className="text-indigo-400">MOTION-GFX</span>
             </span>
-            <span className="text-[10px] font-mono font-medium uppercase px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-700 hidden sm:inline-block">
-              Commercial Studio
+            <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 hidden sm:inline-block">
+              PRO STUDIO
             </span>
           </div>
         </div>
@@ -75,6 +77,19 @@ export const Header: React.FC<HeaderProps> = ({
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-200" />
             <span>Contributor Hub</span>
           </button>
+
+          {/* Lock Studio Button */}
+          {onLockStudio && (
+            <button
+              id="btn-lock-studio"
+              type="button"
+              onClick={onLockStudio}
+              className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-rose-400 border border-slate-800 transition-colors cursor-pointer"
+              title="Lock Workstation (Requires passcode 14418)"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </header>

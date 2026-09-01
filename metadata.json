@@ -1,6 +1,7 @@
 {
-  "name": "MotionAI Studio",
-  "description": "Production-grade 4K AI Video Generator tailored for commercial stock footage, Adobe Stock H.264 FFmpeg encoding, and AI cinematic rendering.",
+  "name": "SARKO MOTION-GFX",
+  "description": "SARKO MOTION-GFX - Commercial 4K AI Video & Motion Graphics Studio with Stock Footage Optimization and H.264 Master Export.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
+
