@@ -75,6 +75,10 @@ export const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
         list.push(`/api/video-proxy?url=${encodeURIComponent(currentVideo.videoUrl)}`);
       }
     }
+    // 4. Ultimate local verified master fallback
+    if (!list.includes('/samples/sample-aerial.mp4')) {
+      list.push('/samples/sample-aerial.mp4');
+    }
     return list;
   }, [rawActiveSrc, currentVideo?.videoUrl]);
 

@@ -7,14 +7,17 @@ import {
   Camera, 
   Sun, 
   Cpu, 
-  ShieldCheck,
-  Sparkles,
-  SlidersHorizontal,
-  ChevronDown,
-  ChevronUp,
-  Flame
+  ShieldCheck, 
+  Sparkles, 
+  SlidersHorizontal, 
+  ChevronDown, 
+  ChevronUp, 
+  Flame, 
+  KeyRound,
+  CheckCircle2
 } from 'lucide-react';
-import { AspectRatio, VideoDuration, VideoEngine, CameraShotStyle, LightingPreset } from '../types';
+import { AspectRatio, VideoDuration, VideoEngine, CameraShotStyle, LightingPreset, ApiKeysConfig, AiProviderId } from '../types';
+import { getProviderInfoForModel } from '../utils/providerMapping';
 
 interface SidebarControlsProps {
   aspectRatio: AspectRatio;
@@ -33,6 +36,8 @@ interface SidebarControlsProps {
   setEnable4kUpscale: (val: boolean) => void;
   adobeStockStandard: boolean;
   setAdobeStockStandard: (val: boolean) => void;
+  apiKeysConfig?: ApiKeysConfig;
+  onOpenAiProviders?: (targetProvider?: AiProviderId) => void;
 }
 
 export const SidebarControls: React.FC<SidebarControlsProps> = ({
@@ -52,6 +57,8 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
   setEnable4kUpscale,
   adobeStockStandard,
   setAdobeStockStandard,
+  apiKeysConfig,
+  onOpenAiProviders
 }) => {
   const [isMobileExpanded, setIsMobileExpanded] = useState<boolean>(false);
 
@@ -292,6 +299,16 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
               3. Model & Encoding
             </span>
+            {onOpenAiProviders && (
+              <button
+                type="button"
+                onClick={onOpenAiProviders}
+                className="text-[11px] text-indigo-400 hover:text-indigo-300 font-mono flex items-center gap-1 cursor-pointer"
+              >
+                <KeyRound className="w-3 h-3" />
+                <span>API Keys</span>
+              </button>
+            )}
           </div>
 
           {/* AI Engine Selector */}
@@ -303,11 +320,47 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
               onChange={(e) => setEngine(e.target.value as VideoEngine)}
               className="w-full bg-slate-900 border border-slate-700/80 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 transition-colors font-mono"
             >
-              <option value="minimax/video-01">Minimax Video-01 (High Coherence)</option>
-              <option value="bytedance/wan-2.1-t2v-1.3b">Wan 2.1 T2V (Fluid Physics)</option>
-              <option value="veo-3.1-generate-preview">Google Veo 3.1 (Cinematic Lighting)</option>
-              <option value="cinematic-sora">Sora Studio AI (Stock Benchmark)</option>
+              <option value="minimax/video-01">Replicate: Minimax Video-01 ⚡ (#1 High Coherence)</option>
+              <option value="bytedance/wan-2.1-t2v-1.3b">Replicate: Wan 2.1 Fast T2V (Fluid Motion)</option>
+              <option value="wavespeedai/wan-2.1-t2v-720p">Replicate: Wan 2.1 14B High-Res (720p/1080p)</option>
+              <option value="kwaivgi/kling-v1.5">Replicate: Kling v1.5 Pro (Realistic Action)</option>
+              <option value="luma/ray-2">Replicate: Luma Ray 2 Master (Dream Machine)</option>
+              <option value="fal-ai/wan-t2v">Fal.ai: Wan 2.1 14B Ultra T2V</option>
+              <option value="fal-ai/hunyuan-video">Fal.ai: Hunyuan Video 4K Master</option>
+              <option value="runway/gen-3-alpha">Runway: Gen-3 Alpha Cinematic</option>
+              <option value="pika/pika-2.0">Pika: Pika 2.0 Cinematic Video</option>
+              <option value="google/veo-2">Google: DeepMind Veo 2 Master</option>
             </select>
+
+            {/* Model Provider & Key Status */}
+            {(() => {
+              const pInfo = getProviderInfoForModel(engine);
+              const hasKey = Boolean(apiKeysConfig?.providers?.[pInfo.providerId]?.apiKey);
+              return (
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px]">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="text-slate-400">Provider:</span>
+                    <span className="font-semibold text-slate-200">{pInfo.providerShortName}</span>
+                    {hasKey ? (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-mono text-[10px]">
+                        <CheckCircle2 className="w-2.5 h-2.5" /> Key Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 font-mono text-[10px]">
+                        Stock Master
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenAiProviders?.(pInfo.providerId)}
+                    className="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 underline cursor-pointer shrink-0 ml-1.5"
+                  >
+                    {hasKey ? 'Change Key' : `Set ${pInfo.providerShortName} Key`}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
 
           {/* 4K Topaz-Grade AI Upscaler Toggle */}

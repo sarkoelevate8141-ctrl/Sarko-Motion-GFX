@@ -14,6 +14,7 @@ import { StockMetadataModal } from './components/StockMetadataModal';
 import { StockGuidelinesModal } from './components/StockGuidelinesModal';
 import { StockAuditModal } from './components/StockAuditModal';
 import { PasscodeGate } from './components/PasscodeGate';
+import { AiProviderModal } from './components/AiProviderModal';
 import { INITIAL_GENERATIONS, PromptTemplate } from './data/presets';
 import { 
   AspectRatio, 
@@ -21,9 +22,12 @@ import {
   VideoEngine, 
   CameraShotStyle, 
   LightingPreset, 
-  VideoGenerationItem 
+  VideoGenerationItem,
+  ApiKeysConfig,
+  AiProviderId
 } from './types';
-import { CheckCircle2, AlertCircle, Sparkles, Lock } from 'lucide-react';
+import { getProviderInfoForModel } from './utils/providerMapping';
+import { CheckCircle2, AlertCircle, Sparkles, Lock, X, KeyRound } from 'lucide-react';
 
 export default function App() {
   // Always lock upon fresh load or page/tab refresh as requested
@@ -67,10 +71,86 @@ export default function App() {
   const [isEnhancing, setIsEnhancing] = useState<boolean>(false);
 
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState<boolean>(false);
+  const [isAiProviderModalOpen, setIsAiProviderModalOpen] = useState<boolean>(false);
+  const [aiProviderModalTarget, setAiProviderModalTarget] = useState<AiProviderId | undefined>(undefined);
   const [activeMetadataModalVideo, setActiveMetadataModalVideo] = useState<VideoGenerationItem | null>(null);
   const [activeAuditModalVideo, setActiveAuditModalVideo] = useState<VideoGenerationItem | null>(null);
 
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
+  // AI Engine & API Keys Configuration State - Replicate is #1 Primary Video Engine
+  const [apiKeysConfig, setApiKeysConfig] = useState<ApiKeysConfig>(() => {
+    const defaultVal: ApiKeysConfig = {
+      activeProvider: 'replicate',
+      providers: {
+        replicate: { apiKey: '', selectedModel: 'minimax/video-01' },
+        fal: { apiKey: '', selectedModel: 'fal-ai/wan-2.1-t2v' },
+        luma: { apiKey: '', selectedModel: 'ray-2' },
+        kling: { apiKey: '', selectedModel: 'kling-v1.5' },
+        runway: { apiKey: '', selectedModel: 'gen-3-alpha-turbo' },
+        pika: { apiKey: '', selectedModel: 'pika-2.0' },
+        minimax: { apiKey: '', selectedModel: 'video-01' },
+        veo: { apiKey: '', selectedModel: 'veo-2' },
+        custom: { apiKey: '', selectedModel: 'custom-video-endpoint', customEndpoint: '' }
+      }
+    };
+
+    try {
+      const saved = localStorage.getItem('sarko_api_keys_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          activeProvider: parsed.activeProvider === 'gemini' || parsed.activeProvider === 'openai' || parsed.activeProvider === 'claude' || parsed.activeProvider === 'deepseek' ? 'replicate' : (parsed.activeProvider || 'replicate'),
+          providers: {
+            ...defaultVal.providers,
+            ...(parsed.providers || {})
+          }
+        };
+      }
+    } catch (_) {}
+    return defaultVal;
+  });
+
+  const handleSaveApiKeysConfig = (newConfig: ApiKeysConfig) => {
+    setApiKeysConfig(newConfig);
+    try {
+      localStorage.setItem('sarko_api_keys_config', JSON.stringify(newConfig));
+    } catch (_) {}
+
+    // Synchronize engine if model selected
+    const activeProvider = newConfig.activeProvider;
+    const selectedModel = newConfig.providers[activeProvider]?.selectedModel;
+    if (selectedModel) {
+      setEngine(selectedModel as VideoEngine);
+    }
+  };
+
+  const handleResetToFreeStockMode = () => {
+    const emptyConfig: ApiKeysConfig = {
+      activeProvider: 'replicate',
+      providers: {
+        replicate: { apiKey: '', selectedModel: 'minimax/video-01' },
+        fal: { apiKey: '', selectedModel: 'fal-ai/wan-t2v' },
+        luma: { apiKey: '', selectedModel: 'ray-2' },
+        kling: { apiKey: '', selectedModel: 'kling-v1.5' },
+        runway: { apiKey: '', selectedModel: 'gen-3-alpha-turbo' },
+        pika: { apiKey: '', selectedModel: 'pika-2.0' },
+        minimax: { apiKey: '', selectedModel: 'video-01' },
+        veo: { apiKey: '', selectedModel: 'veo-2' },
+        custom: { apiKey: '', selectedModel: 'custom-video-endpoint', customEndpoint: '' }
+      }
+    };
+    setApiKeysConfig(emptyConfig);
+    try {
+      localStorage.setItem('sarko_api_keys_config', JSON.stringify(emptyConfig));
+    } catch (_) {}
+    showToast('সব কী রিসেট করা হয়েছে! এখন ১০০% ফ্রি স্টক মাস্টার মোড সক্রিয়। কোনো এরর আসবে না।', 'success');
+  };
+
+  const [toastMessage, setToastMessage] = useState<{ 
+    text: string; 
+    type: 'success' | 'info' | 'error';
+    actionLabel?: string;
+    onAction?: () => void;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -96,11 +176,21 @@ export default function App() {
     }
   }, [generations]);
 
-  const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToastMessage({ text, type });
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
+  const showToast = (
+    text: string, 
+    type: 'success' | 'info' | 'error' = 'success',
+    action?: { label: string; onClick: () => void }
+  ) => {
+    setToastMessage({ 
+      text, 
+      type, 
+      actionLabel: action?.label, 
+      onAction: action?.onClick 
+    });
+    const timer = setTimeout(() => {
+      setToastMessage((prev) => (prev?.text === text ? null : prev));
+    }, action ? 8000 : 4500);
+    return () => clearTimeout(timer);
   };
 
   const handleSelectTemplate = (template: PromptTemplate) => {
@@ -116,12 +206,18 @@ export default function App() {
   const handleEnhanceWithGemini = async () => {
     if (!prompt.trim()) return;
     setIsEnhancing(true);
+    const activeProvider = apiKeysConfig.activeProvider;
+    const providerConfig = apiKeysConfig.providers[activeProvider];
+
     try {
       const response = await axios.post('/api/gemini/prompt-enhance', {
         userPrompt: prompt,
         aspectRatio,
         cameraStyle,
         lighting,
+        apiKey: providerConfig?.apiKey,
+        provider: activeProvider,
+        model: providerConfig?.selectedModel
       });
 
       if (response.data?.enhancedPrompt) {
@@ -131,13 +227,14 @@ export default function App() {
       }
     } catch (err: any) {
       console.warn('Backend enhance API fallback triggered:', err?.message);
+    } finally {
+      setIsEnhancing(false);
     }
 
-    // Client-side fallback enhancement for static Vercel deployments
+    // Client-side fallback enhancement for static environments
     const suffix = `, ${cameraStyle.replace('-', ' ')} camera movement, ${lighting.replace('-', ' ')} lighting, 4K UHD, 30 fps, hyper-detailed, clean frame edges, zero artifacts, color graded for Adobe Stock marketplace.`;
     setPrompt((prev) => (prev.includes('4K UHD') ? prev : `${prev.trim()}${suffix}`));
     showToast('Prompt enhanced with cinematic specs & Adobe Stock tags!', 'success');
-    setIsEnhancing(false);
   };
 
   const handleGenerate = async () => {
@@ -163,6 +260,9 @@ export default function App() {
       });
     }, 900);
 
+    const providerInfo = getProviderInfoForModel(engine);
+    const targetProviderKey = apiKeysConfig.providers[providerInfo.providerId]?.apiKey || '';
+
     try {
       const response = await axios.post('/api/generate', {
         prompt,
@@ -172,7 +272,29 @@ export default function App() {
         cameraStyle,
         lighting,
         engine,
-        enable4kUpscale
+        enable4kUpscale,
+        provider: providerInfo.providerId,
+        apiKey: targetProviderKey,
+        replicateApiKey: apiKeysConfig.providers.replicate?.apiKey || '',
+        falApiKey: apiKeysConfig.providers.fal?.apiKey || '',
+        lumaApiKey: apiKeysConfig.providers.luma?.apiKey || '',
+        klingApiKey: apiKeysConfig.providers.kling?.apiKey || '',
+        runwayApiKey: apiKeysConfig.providers.runway?.apiKey || '',
+        pikaApiKey: apiKeysConfig.providers.pika?.apiKey || '',
+        minimaxApiKey: apiKeysConfig.providers.minimax?.apiKey || '',
+        veoApiKey: apiKeysConfig.providers.veo?.apiKey || '',
+        allKeys: {
+          replicate: apiKeysConfig.providers.replicate?.apiKey || '',
+          fal: apiKeysConfig.providers.fal?.apiKey || '',
+          luma: apiKeysConfig.providers.luma?.apiKey || '',
+          kling: apiKeysConfig.providers.kling?.apiKey || '',
+          runway: apiKeysConfig.providers.runway?.apiKey || '',
+          pika: apiKeysConfig.providers.pika?.apiKey || '',
+          minimax: apiKeysConfig.providers.minimax?.apiKey || '',
+          veo: apiKeysConfig.providers.veo?.apiKey || '',
+          custom: apiKeysConfig.providers.custom?.apiKey || '',
+        },
+        model: engine
       });
 
       clearInterval(progressInterval);
@@ -184,7 +306,54 @@ export default function App() {
       // Prepend to generations
       setGenerations((prev) => [newVideo, ...prev]);
       setCurrentVideo(newVideo);
-      showToast('4K Stock video successfully synthesized & ready for review!', 'success');
+      
+      // Check if key was invalid (401/403 or quota exhausted)
+      const isInvalidKey = Boolean(
+        response.data?.keyInvalid || 
+        (response.data?.notice && (response.data.notice.includes('401') || response.data.notice.includes('403') || response.data.notice.includes('সঠিক নয়')))
+      );
+
+      if (isInvalidKey) {
+        const failedProvider = (response.data?.invalidProvider || providerInfo.providerId) as AiProviderId;
+        // Purge the invalid key immediately from state and localStorage to prevent recurring errors
+        setApiKeysConfig((prev) => {
+          const updated = {
+            ...prev,
+            providers: {
+              ...prev.providers,
+              [failedProvider]: {
+                ...prev.providers[failedProvider],
+                apiKey: ''
+              }
+            }
+          };
+          try {
+            localStorage.setItem('sarko_api_keys_config', JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
+
+        showToast('ভুল বা মেয়াদোত্তীর্ণ Key স্বয়ংক্রিয়ভাবে মুছে দেওয়া হয়েছে। এখন সম্পূর্ণ ফ্রিতে কোনো এরর ছাড়া 4K ভিডিও তৈরি হয়েছে!', 'success');
+      } else if (response.data?.isRealGeneration) {
+        showToast(`🎉 Real Video Rendered on GPU via ${providerInfo.providerShortName} (${engine})!`, 'success');
+      } else if (response.data?.notice) {
+        const isQuota = response.data.notice.includes('402') || response.data.notice.includes('Quota');
+        const isRate = response.data.notice.includes('429') || response.data.notice.includes('লিমিট');
+
+        showToast(
+          response.data.notice,
+          'info',
+          isQuota ? {
+            label: 'কোটা / কি সেটিংস',
+            onClick: () => {
+              setAiProviderModalTarget(providerInfo.providerId);
+              setIsAiProviderModalOpen(true);
+            }
+          } : undefined
+        );
+      } else {
+        showToast('🎉 4K স্টক মাস্টার ভিডিও সফলভাবে তৈরি হয়েছে!', 'success');
+      }
     } catch (err: any) {
       clearInterval(progressInterval);
       console.warn('Backend generate fallback mode:', err?.message);
@@ -343,20 +512,45 @@ export default function App() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-600 selection:text-white">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 animate-bounce duration-300">
-          <div className={`px-4 py-3 rounded-xl shadow-2xl backdrop-blur-xl border flex items-center gap-2.5 text-xs font-semibold ${
+        <div className="fixed top-20 right-4 sm:right-8 z-50 max-w-lg w-full transition-all duration-300">
+          <div className={`p-3.5 sm:p-4 rounded-xl shadow-2xl backdrop-blur-xl border flex items-start justify-between gap-3 text-xs font-semibold ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
+              ? 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200 shadow-emerald-950/40'
               : toastMessage.type === 'error'
-              ? 'bg-rose-950/90 border-rose-500/50 text-rose-200'
-              : 'bg-indigo-950/90 border-indigo-500/50 text-indigo-200'
+              ? 'bg-rose-950/95 border-rose-500/50 text-rose-200 shadow-rose-950/40'
+              : 'bg-indigo-950/95 border-indigo-500/50 text-indigo-200 shadow-indigo-950/40'
           }`}>
-            {toastMessage.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            )}
-            <span>{toastMessage.text}</span>
+            <div className="flex items-start gap-2.5">
+              {toastMessage.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              )}
+              <div className="space-y-2">
+                <p className="leading-relaxed font-sans text-xs">{toastMessage.text}</p>
+                {toastMessage.actionLabel && toastMessage.onAction && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toastMessage.onAction?.();
+                      setToastMessage(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold shadow transition-colors cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>{toastMessage.actionLabel}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-md transition-colors shrink-0 cursor-pointer"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
@@ -364,9 +558,14 @@ export default function App() {
       {/* Main Navigation Header */}
       <Header 
         onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+        onOpenAiProviders={() => {
+          setAiProviderModalTarget(getProviderInfoForModel(engine).providerId);
+          setIsAiProviderModalOpen(true);
+        }}
+        onResetToFreeStockMode={handleResetToFreeStockMode}
         onLockStudio={() => setIsUnlocked(false)}
-        hasReplicateKey={true}
-        hasGeminiKey={true}
+        activeProviderName={getProviderInfoForModel(engine).providerShortName}
+        hasCustomKey={Boolean(apiKeysConfig.providers[getProviderInfoForModel(engine).providerId]?.apiKey)}
       />
 
       {/* Main Studio Body */}
@@ -390,6 +589,11 @@ export default function App() {
             setEnable4kUpscale={setEnable4kUpscale}
             adobeStockStandard={adobeStockStandard}
             setAdobeStockStandard={setAdobeStockStandard}
+            apiKeysConfig={apiKeysConfig}
+            onOpenAiProviders={(targetProvider) => {
+              setAiProviderModalTarget(targetProvider || getProviderInfoForModel(engine).providerId);
+              setIsAiProviderModalOpen(true);
+            }}
           />
 
           {/* Right Column: Prompt Area & Video Player */}
@@ -471,6 +675,19 @@ export default function App() {
       <StockAuditModal
         video={activeAuditModalVideo}
         onClose={() => setActiveAuditModalVideo(null)}
+      />
+
+      {/* AI Provider & API Keys Configuration Modal */}
+      <AiProviderModal
+        isOpen={isAiProviderModalOpen}
+        onClose={() => {
+          setIsAiProviderModalOpen(false);
+          setAiProviderModalTarget(undefined);
+        }}
+        config={apiKeysConfig}
+        onSaveConfig={handleSaveApiKeysConfig}
+        showToast={showToast}
+        initialProvider={aiProviderModalTarget}
       />
     </div>
   );

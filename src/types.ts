@@ -5,8 +5,15 @@ export type VideoResolution = '1080p' | '4k' | '8k';
 export type VideoEngine = 
   | 'minimax/video-01' 
   | 'bytedance/wan-2.1-t2v-1.3b' 
-  | 'veo-3.1-generate-preview' 
-  | 'cinematic-sora';
+  | 'wavespeedai/wan-2.1-t2v-720p'
+  | 'kwaivgi/kling-v1.5'
+  | 'luma/ray-2'
+  | 'fal-ai/wan-t2v'
+  | 'fal-ai/wan-2.1-t2v'
+  | 'fal-ai/hunyuan-video'
+  | 'runway/gen-3-alpha'
+  | 'pika/pika-2.0'
+  | 'google/veo-2';
 
 export type CameraShotStyle = 
   | 'cinematic-aerial' 
@@ -98,4 +105,27 @@ export interface PromptEnhanceResponse {
   stockCategory: string;
   cameraTips: string;
   lightingTips: string;
+}
+
+export type AiProviderId = 
+  | 'replicate' 
+  | 'fal' 
+  | 'luma' 
+  | 'kling' 
+  | 'runway' 
+  | 'pika' 
+  | 'minimax' 
+  | 'veo' 
+  | 'custom';
+
+export interface ProviderConfig {
+  apiKey: string;
+  selectedModel: string;
+  customEndpoint?: string;
+  isVerified?: boolean;
+}
+
+export interface ApiKeysConfig {
+  activeProvider: AiProviderId;
+  providers: Record<AiProviderId, ProviderConfig>;
 }

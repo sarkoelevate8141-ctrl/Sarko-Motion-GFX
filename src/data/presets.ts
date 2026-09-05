@@ -29,7 +29,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     lighting: 'moody-rim',
     keywords: ['bioluminescent waves', 'black sand beach', 'cyan glow', 'twilight ocean', 'fluid dynamics', '4k stock footage', 'commercial b-roll'],
     stockTitle: 'Bioluminescent Cyan Ocean Waves Rolling on Black Sand Beach at Twilight 4K',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: '/samples/sample-aerial.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
   },
   {
@@ -44,7 +44,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     lighting: 'cyberpunk-neon',
     keywords: ['quantum computing', 'ai processor', 'microchip', 'optics', 'technology background', 'cybersecurity', 'deep tech', '4k stock video'],
     stockTitle: 'Glowing Quantum Computing Core with Micro Optical Data Pulses 4K',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: '/samples/sample-cyberpunk.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
   },
   {
@@ -59,7 +59,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     lighting: 'golden-hour',
     keywords: ['alpine drone', 'mountain sunrise', 'snow peaks', 'golden hour', 'wanderlust', 'nature documentary', 'cinematic stock'],
     stockTitle: 'Dramatic Aerial Drone Flight over Misty Mountain Peaks at Sunrise',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    videoUrl: '/samples/sample-nature.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
   },
   {
@@ -74,7 +74,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     lighting: 'studio-softbox',
     keywords: ['espresso extraction', 'barista craft', 'coffee crema', 'slow motion', 'gourmet cafe', 'food commercial', '4k food b-roll'],
     stockTitle: 'Slow Motion Extreme Close-up of Rich Espresso Extraction with Crema',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    videoUrl: '/samples/sample-commercial.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80',
   },
   {
@@ -89,7 +89,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     lighting: 'moody-rim',
     keywords: ['wind turbine', 'clean energy', 'renewable power', 'offshore wind', 'sustainable future', 'esg investing', 'green tech'],
     stockTitle: 'Offshore Wind Turbine Farm Spinning Over Ocean at Sunset 4K',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    videoUrl: '/samples/sample-aerial.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80',
   },
   {
@@ -104,7 +104,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     lighting: 'cyberpunk-neon',
     keywords: ['tokyo street', 'rain reflections', 'neon lights', 'vertical video', 'tiktok broll', 'reels stock footage', 'cyberpunk city'],
     stockTitle: 'Vertical 9:16 Rainy Cyberpunk Neon Street Atmosphere with Reflections',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+    videoUrl: '/samples/sample-timelapse.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80',
   }
 ];
@@ -122,11 +122,11 @@ export const INITIAL_GENERATIONS: VideoGenerationItem[] = [
     resolution: '4k',
     fps: 30,
     engine: 'minimax/video-01',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    upscaled4kUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: '/samples/sample-aerial.mp4',
+    upscaled4kUrl: '/samples/sample-aerial.mp4',
     isUpscaled: true,
     isAdobeStockConverted: true,
-    adobeStockUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    adobeStockUrl: '/samples/sample-aerial.mp4',
     adobeStockMetadata: {
       title: 'Bioluminescent Cyan Ocean Waves Rolling on Black Sand Beach at Twilight 4K',
       category: 'Travel & Nature',
@@ -162,10 +162,10 @@ export const INITIAL_GENERATIONS: VideoGenerationItem[] = [
     resolution: '1080p',
     fps: 30,
     engine: 'bytedance/wan-2.1-t2v-1.3b',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    videoUrl: '/samples/sample-cyberpunk.mp4',
     isUpscaled: false,
     isAdobeStockConverted: true,
-    adobeStockUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    adobeStockUrl: '/samples/sample-cyberpunk.mp4',
     adobeStockMetadata: {
       title: 'Macro Close-Up of Futuristic Neural Microchip with Optical Light Traces',
       category: 'Technology & AI',
