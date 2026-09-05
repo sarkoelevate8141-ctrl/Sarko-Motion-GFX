@@ -110,6 +110,7 @@ export interface PromptEnhanceResponse {
 export type AiProviderId = 
   | 'replicate' 
   | 'fal' 
+  | 'groq'
   | 'luma' 
   | 'kling' 
   | 'runway' 

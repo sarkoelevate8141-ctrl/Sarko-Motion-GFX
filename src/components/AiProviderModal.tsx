@@ -80,6 +80,22 @@ const PROVIDER_METAS: Record<AiProviderId, ProviderMeta> = {
     ],
     defaultModel: 'fal-ai/wan-2.1-t2v'
   },
+  groq: {
+    id: 'groq',
+    name: 'Groq AI (LPU Ultra-Fast Directing & Script-to-Video Engine)',
+    shortName: 'Groq AI',
+    icon: <Zap className="w-5 h-5 text-amber-400" />,
+    description: 'Ultra-fast 500+ tokens/sec Groq LPU engine for instant cinematic scene directing, Stock metadata generation, and AI script enhancement',
+    keyUrl: 'https://console.groq.com/keys',
+    keyPrefixHint: 'gsk_...',
+    models: [
+      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile ⚡ (Hollywood Director Master)', recommended: true },
+      { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (Ultra Low Latency)' },
+      { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B 32k (Deep Storyboarding)' },
+      { id: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 Distill 70B (Cinematic Reasoning)' }
+    ],
+    defaultModel: 'llama-3.3-70b-versatile'
+  },
   luma: {
     id: 'luma',
     name: 'Luma AI (Dream Machine API)',
@@ -693,6 +709,7 @@ export const AiProviderModal: React.FC<AiProviderModalProps> = ({
               const emptyProviders: Record<AiProviderId, ProviderConfig> = {
                 replicate: { apiKey: '', selectedModel: 'minimax/video-01' },
                 fal: { apiKey: '', selectedModel: 'fal-ai/wan-t2v' },
+                groq: { apiKey: '', selectedModel: 'llama-3.3-70b-versatile' },
                 luma: { apiKey: '', selectedModel: 'ray-2' },
                 kling: { apiKey: '', selectedModel: 'kling-v1.5' },
                 runway: { apiKey: '', selectedModel: 'gen-3-alpha-turbo' },

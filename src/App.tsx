@@ -83,6 +83,7 @@ export default function App() {
       providers: {
         replicate: { apiKey: '', selectedModel: 'minimax/video-01' },
         fal: { apiKey: '', selectedModel: 'fal-ai/wan-2.1-t2v' },
+        groq: { apiKey: '', selectedModel: 'llama-3.3-70b-versatile' },
         luma: { apiKey: '', selectedModel: 'ray-2' },
         kling: { apiKey: '', selectedModel: 'kling-v1.5' },
         runway: { apiKey: '', selectedModel: 'gen-3-alpha-turbo' },
@@ -129,6 +130,7 @@ export default function App() {
       providers: {
         replicate: { apiKey: '', selectedModel: 'minimax/video-01' },
         fal: { apiKey: '', selectedModel: 'fal-ai/wan-t2v' },
+        groq: { apiKey: '', selectedModel: 'llama-3.3-70b-versatile' },
         luma: { apiKey: '', selectedModel: 'ray-2' },
         kling: { apiKey: '', selectedModel: 'kling-v1.5' },
         runway: { apiKey: '', selectedModel: 'gen-3-alpha-turbo' },
@@ -206,7 +208,10 @@ export default function App() {
   const handleEnhanceWithGemini = async () => {
     if (!prompt.trim()) return;
     setIsEnhancing(true);
-    const activeProvider = apiKeysConfig.activeProvider;
+    
+    // Check if user has a configured key (Groq, Replicate, Fal, etc.)
+    const groqKey = apiKeysConfig.providers.groq?.apiKey;
+    const activeProvider = groqKey ? 'groq' : apiKeysConfig.activeProvider;
     const providerConfig = apiKeysConfig.providers[activeProvider];
 
     try {
@@ -222,7 +227,8 @@ export default function App() {
 
       if (response.data?.enhancedPrompt) {
         setPrompt(response.data.enhancedPrompt);
-        showToast('Prompt enhanced with cinematic specs & Adobe Stock tags!', 'success');
+        const engineTag = groqKey ? 'Groq LPU (Instant)' : 'AI Director Engine';
+        showToast(`Prompt enhanced with cinematic specs & Adobe Stock tags via ${engineTag}!`, 'success');
         return;
       }
     } catch (err: any) {
@@ -277,6 +283,7 @@ export default function App() {
         apiKey: targetProviderKey,
         replicateApiKey: apiKeysConfig.providers.replicate?.apiKey || '',
         falApiKey: apiKeysConfig.providers.fal?.apiKey || '',
+        groqApiKey: apiKeysConfig.providers.groq?.apiKey || '',
         lumaApiKey: apiKeysConfig.providers.luma?.apiKey || '',
         klingApiKey: apiKeysConfig.providers.kling?.apiKey || '',
         runwayApiKey: apiKeysConfig.providers.runway?.apiKey || '',
@@ -286,6 +293,7 @@ export default function App() {
         allKeys: {
           replicate: apiKeysConfig.providers.replicate?.apiKey || '',
           fal: apiKeysConfig.providers.fal?.apiKey || '',
+          groq: apiKeysConfig.providers.groq?.apiKey || '',
           luma: apiKeysConfig.providers.luma?.apiKey || '',
           kling: apiKeysConfig.providers.kling?.apiKey || '',
           runway: apiKeysConfig.providers.runway?.apiKey || '',

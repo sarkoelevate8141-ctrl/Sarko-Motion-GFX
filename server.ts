@@ -376,6 +376,40 @@ async function startServer() {
         }
       }
 
+      if (provider === 'groq') {
+        try {
+          const groqRes = await axios.get('https://api.groq.com/openai/v1/models', {
+            headers: { Authorization: `Bearer ${key}` },
+            timeout: 8000
+          });
+          if (groqRes.status === 200) {
+            invalidApiKeys.delete(key);
+            return res.json({
+              status: 'success',
+              message: 'Groq AI API Key (LPU Ultra-Fast Engine) সফলভাবে ভেরিফাই ও সক্রিয় করা হয়েছে!'
+            });
+          }
+        } catch (groqErr: any) {
+          const status = groqErr.response?.status;
+          if (status === 401 || status === 403) {
+            invalidApiKeys.add(key);
+            return res.status(401).json({
+              error: 'Groq API Key সঠিক নয় (401 Unauthorized)। অনুগ্রহ করে console.groq.com/keys থেকে সঠিক কী দিন।'
+            });
+          }
+          if (status === 429) {
+            return res.json({
+              status: 'rate_limited',
+              message: 'Groq AI Rate Limit সক্রিয় (429)। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।'
+            });
+          }
+          return res.json({
+            status: 'success',
+            message: 'Groq API Key সেভ করা হয়েছে।'
+          });
+        }
+      }
+
       if (provider === 'runway') {
         return res.json({
           status: 'success',
@@ -643,10 +677,10 @@ async function startServer() {
               if (is402) {
                 replicateExhaustedTokens.add(userProvidedRepKey);
                 console.log('[Replicate Info]: 402 Free quota limit reached on user key.');
-                notice = undefined; // Don't nag, serve stock video directly
+                notice = 'Replicate Free Quota Reached (402)। বিলিং যুক্ত করতে replicate.com/account/billing ভিজিট করুন। (4K স্টক মাস্টার প্রস্তুত)';
               } else if (is429) {
                 console.log('[Replicate Info]: 429 Rate limit throttled on user key.');
-                notice = undefined;
+                notice = 'Replicate Rate Limit (429) - অনুগ্রহ করে ১০ সেকেন্ড পর আবার চেষ্টা করুন। (4K স্টক মাস্টার প্রস্তুত)';
               } else if (is401) {
                 console.log('[Replicate Info]: 401 Invalid token.');
                 invalidApiKeys.add(userProvidedRepKey);
@@ -960,6 +994,35 @@ async function startServer() {
 
       if (!userPrompt) {
         return res.status(400).json({ error: 'userPrompt is required' });
+      }
+
+      // Check if user provided Groq AI key (LPU ultra-fast inference)
+      if (provider === 'groq' && apiKey) {
+        try {
+          const groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+            model: model || 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert Hollywood Cinematographer and Adobe Stock commercial video director. Rewrite raw user prompt into rich 4K cinematic AI video prompt and return ONLY valid JSON with keys: enhancedPrompt, suggestedTitle, suggestedKeywords (array of strings), stockCategory, cameraTips, lightingTips.'
+              },
+              {
+                role: 'user',
+                content: `User Prompt: ${userPrompt}, Preferred Category: ${category || 'Auto-detect'}, Style: ${cameraStyle || 'Cinematic'}, Lighting: ${lighting || 'Golden Hour'}, Aspect Ratio: ${aspectRatio || '16:9'}`
+              }
+            ],
+            response_format: { type: 'json_object' }
+          }, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+            timeout: 12000
+          });
+          const content = groqRes.data?.choices?.[0]?.message?.content;
+          if (content) {
+            return res.status(200).json(JSON.parse(content));
+          }
+        } catch (groqErr: any) {
+          console.warn('[Groq Directing Key Fail, falling back to Gemini Pool]:', groqErr?.message);
+        }
       }
 
       // Check if user provided OpenAI or DeepSeek or Claude key
